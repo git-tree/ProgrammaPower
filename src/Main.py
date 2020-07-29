@@ -11,7 +11,7 @@ import sys
 from Power_main import controller_main
 from PyQt5.QtWidgets import QApplication
 
-# 程序主入口
+# 程序主入口。
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     login=controller_main()
