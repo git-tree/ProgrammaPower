@@ -62,27 +62,33 @@ class controller_main(QMainWindow, Ui_MainWindow):
         """
         打开/关闭开关
         """
-        if self.power is not None:
-            if self.isOUTPutOn:
-                self.power.write("*RST")
-                self.power.write("*CLS")
-                self.power.write("OUTPut OFF")
-                self.isOUTPutOn=False
-                self.switchtip("×测试开关已关闭",False)
-            else:
-                self.power.write("*RST")
-                self.power.write("*CLS")
-                # self.power.write("VOLTage 2.36001")
-                self.power.write("OUTPut ON")
-                self.switchtip("√测试开关已打开",True)
-                self.isOUTPutOn=True
-        else:
+        if self.power is  None:
             self.showmsg("未检查到电源！")
+            return
+        if self.isTesting:
+            self.showmsg("正在测试,请勿关闭电源!")
+            return
+        if self.isOUTPutOn:
+            self.power.write("*RST")
+            self.power.write("*CLS")
+            self.power.write("OUTPut OFF")
+            self.isOUTPutOn=False
+            self.switchtip("×测试开关已关闭",False)
+        else:
+            self.power.write("*RST")
+            self.power.write("*CLS")
+            # self.power.write("VOLTage 2.36001")
+            self.power.write("OUTPut ON")
+            self.switchtip("√测试开关已打开",True)
+            self.isOUTPutOn=True
     @pyqtSlot()
     def on_btn_input_clicked(self):
         """
         录入数据
         """
+        if self.isTesting:
+            self.showmsg("请等待测试任务完成,再录入数据!")
+            return
         get_v=self.txt_v.text()
         get_min=self.txt_min.text()
         get_steptime=self.txt_second.text()
@@ -109,6 +115,9 @@ class controller_main(QMainWindow, Ui_MainWindow):
         """
         if len(self.testdata)==0:
             self.insert2textedit("暂无数据")
+            return
+        if self.isTesting:
+            self.showmsg("请等待测试完成!")
             return
         self.showmsg_sure("你确定清空录入的数据吗?")
     @pyqtSlot()
@@ -160,19 +169,28 @@ class controller_main(QMainWindow, Ui_MainWindow):
         else:
             event.ignore()
     def startTest(self,data):
+        self.progressBar.setVisible(True)
         for i in range(len(data)):
+            if not self.isOUTPutOn:
+                print("开关已关闭,重新打开...")
+                self.power.write("OUTPut ON")
+                self.isOUTPutOn=True
             print(data[i])
             work1=str(data[i]).split('-')
             testv=work1[0]
             testt=int(float(work1[1])*60)
             testwait=int(work1[2])
             print("电压%s,时间%s,间隔%s"%(testv,testt,testwait))
+            self.insert2textedit("正在测试第%d组,电压【%sV】,时间【%s秒】,间隔【%s秒】"%(i+1,testv,testt,testwait))
             # self.isfreshV=False
             # self.isfreshA=False
             time.sleep(2)
             # self.power.write("*RST")
             self.power.write("*CLS")
             self.power.write("VOLTage %s"%testv)
+
+            self.progressBar.setValue(0)
+            self.progressBar.setMaximum(testt)
             for t in range(testt):
                 print(t)
                 if self.isTesting:
@@ -180,12 +198,31 @@ class controller_main(QMainWindow, Ui_MainWindow):
                     aNum=float(self.power.query("MEAS:CURR?"))
                     print(aNum)
                     time.sleep(1)
+                    self.progressBar.setValue(self.progressBar.value()+1)
                 else:
                     return
             print("准备间隔...")
+            self.insert2textedit("准备等待%s秒"%testwait)
+            self.power.write("OUTPut OFF")
+            self.isOUTPutOn=False
             for w in range(testwait):
                 print('正在休息.%d'%w)
                 time.sleep(1)
+        # 测试完成
+        self.resetPower()
+        print("测试完成")
+        self.insert2textedit("测试完成\(^o^)/~")
+
+    def resetPower(self):
+        if not self.power is None:
+            self.power.write("*RST")
+            self.power.write("*CLS")
+            self.power.write("OUTPut OFF")
+            self.switchtip("电源已关闭",False)
+            if self.isOUTPutOn:
+                self.isOUTPutOn=False
+            if self.isTesting:
+                self.isTesting=False
     def readV(self):
         """
         读取电压
