@@ -9,7 +9,19 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-
+StyleSheet = '''
+/*设置红色进度条*/
+#progressBar {
+    border: 2px solid #2196F3;/*边框以及边框颜色*/
+    border-radius: 5px;
+    background-color: #E0E0E0;
+    text-align: center; /*进度值居中*/
+}
+#progressBar::chunk {
+    background-color: #2196F3;
+    width: 10px; /*区块宽度*/
+    margin: 0.5px;
+}'''
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -80,8 +92,7 @@ class Ui_MainWindow(object):
         self.label_4.setObjectName("label_4")
         self.gridLayout_6.addWidget(self.label_4, 2, 0, 1, 1)
         self.progressBar = QtWidgets.QProgressBar(self.centralWidget)
-        self.progressBar.setStyleSheet("text-align: center;\n"
-"border-radius: 5px;")
+        self.progressBar.setStyleSheet(StyleSheet)
         self.progressBar.setProperty("value", 0)
         self.progressBar.setVisible(False)
         self.progressBar.setObjectName("progressBar")
@@ -201,7 +212,7 @@ class Ui_MainWindow(object):
         self.gridLayout_4.addWidget(self.btn_report, 5, 5, 1, 1)
         self.gridLayout_2.addLayout(self.gridLayout_4, 2, 0, 1, 1)
         spacerItem8 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.gridLayout_2.addItem(spacerItem8, 1, 0, 1, 1)
+        # self.gridLayout_2.addItem(spacerItem8, 1, 0, 1, 1)
         self.line_2 = QtWidgets.QFrame(self.centralWidget)
         self.line_2.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
