@@ -15,6 +15,7 @@ StyleSheet = '''
     border: 2px solid #2196F3;/*边框以及边框颜色*/
     border-radius: 5px;
     background-color: #E0E0E0;
+    max-height: 12px;
     text-align: center; /*进度值居中*/
 }
 #progressBar::chunk {

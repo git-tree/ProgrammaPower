@@ -10,6 +10,9 @@ from Ui_power_main import Ui_MainWindow
 import pyvisa,time,threading
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import *
+import matplotlib.pyplot as plt
+import os
+from numpy import *
 
 class controller_main(QMainWindow, Ui_MainWindow):
     """
@@ -43,6 +46,11 @@ class controller_main(QMainWindow, Ui_MainWindow):
         self.isfreshA=False
         # 正在测试（已经开始测试）
         self.isTesting=False
+        # 生成数据
+        self.list_x=[]
+        self.list_y=[]
+        self.log=None
+        self.dir_name=None
     @pyqtSlot()
     def on_btn_checkdevice_clicked(self):
         """
@@ -56,6 +64,7 @@ class controller_main(QMainWindow, Ui_MainWindow):
             return
         t=threading.Thread(target=self.check_connect)
         self.ischecking=True
+        t.setDaemon(True)
         t.start()
     @pyqtSlot()
     def on_btn_turnon_clicked(self):
@@ -139,7 +148,68 @@ class controller_main(QMainWindow, Ui_MainWindow):
             return
         t=threading.Thread(target=self.startTest,args=(self.testdata,))
         self.isTesting=True
+        t.setDaemon(True)
         t.start()
+    @pyqtSlot()
+    def on_btn_stop_clicked(self):
+        """
+        停止测试
+        """
+        if not self.isTesting:
+            self.showmsg("当前无任务!")
+            return
+        reply = QtWidgets.QMessageBox.question(self, '提示', '确定要停止吗?',QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+        if reply == QtWidgets.QMessageBox.Yes:
+            self.isTesting=False
+            time.sleep(2)
+            if not self.power is None:
+                self.power.write("*RST")
+                self.power.write("*CLS")
+                self.power.write("OUTPut OFF")
+                self.isOUTPutOn=False
+                self.switchtip("电源已关闭",False)
+        else:
+            pass
+    @pyqtSlot()
+    def on_btn_report_clicked(self):
+        """
+        生成图表
+        """
+        fnames = QFileDialog.getOpenFileNames(self, '选择多个文件','./',("logs (*.txt)"))
+        print(fnames)
+        if fnames[0]:
+            plt.figure("图表")
+            plt.rcParams['font.sans-serif']=['SimHei'] #用来正常显示中文标签
+            plt.title('电流曲线')
+            plt.xlabel('时间(s)')
+            plt.ylabel('电流(A)')
+            for fname in fnames[0]:
+                print(fname)
+                try:
+                    file = open(fname)  #打开文档
+                    data = file.readlines() #读取文档数据
+                    dx = []  #新建列表，用于保存第一列数据
+                    dy = []  #新建列表，用于保存第二列数据
+                    for num in data:
+                        # split用于将每一行数据用逗号分割成多个对象
+                        #取分割后的第0列，转换成float格式后添加到para_1列表中
+                        dx.append(float(num.split(',')[0]))
+                        #取分割后的第1列，转换成float格式后添加到para_1列表中
+                        dy.append(float(num.split(',')[1]))
+                    # print(sorted(dy))
+                    # print(max(dy))
+                    # print(min(dy))
+                    # print(mean(dy)*5)
+                    plt.ylim(0,mean(dy)*2)
+                    plt.plot(dx,dy)
+                    plt.plot(dx,dy,'.')
+                    # for a, b in zip(dx, dy):
+                    #     plt.text(a, b, (a,b),ha='center', va='bottom', fontsize=7)
+                    # plt.legend() #加坐标
+                except:
+                    self.showmsg("请打开正确的log文件!")
+                    return
+            plt.show()
     @pyqtSlot()
     def on_textEdit_textChanged(self):
         """
@@ -169,10 +239,16 @@ class controller_main(QMainWindow, Ui_MainWindow):
         else:
             event.ignore()
     def startTest(self,data):
+        self.starttestbtntip("",True)
+        self.progressBar.setValue(0)
         self.progressBar.setVisible(True)
+        self.dir_name=time.strftime("%Y-%m-%d %H-%M-%S", time.localtime())
+        os.mkdir(os.getcwd()+'/'+self.dir_name)
         for i in range(len(data)):
             if not self.isOUTPutOn:
                 print("开关已关闭,重新打开...")
+                self.power.write("*RST")
+                self.power.write("*CLS")
                 self.power.write("OUTPut ON")
                 self.isOUTPutOn=True
             print(data[i])
@@ -184,6 +260,12 @@ class controller_main(QMainWindow, Ui_MainWindow):
             self.insert2textedit("正在测试第%d组,电压【%sV】,时间【%s秒】,间隔【%s秒】"%(i+1,testv,testt,testwait))
             # self.isfreshV=False
             # self.isfreshA=False
+            # 打开文件，写入数据
+            try:
+                self.log=open(os.getcwd()+'/'+self.dir_name+'/第%d组.txt'%(i+1),'w')
+            except:
+                self.insert2textedit("创建log文件错误，请重试 ~!")
+                return
             time.sleep(2)
             # self.power.write("*RST")
             self.power.write("*CLS")
@@ -197,9 +279,22 @@ class controller_main(QMainWindow, Ui_MainWindow):
                     self.power.write("*CLS")
                     aNum=float(self.power.query("MEAS:CURR?"))
                     print(aNum)
+                    # self.list_x.append(t)
+                    # self.list_y.append(aNum)
+                    self.log.write("%s,%s\n"%(t,aNum))
+                    self.log.flush()
                     time.sleep(1)
                     self.progressBar.setValue(self.progressBar.value()+1)
                 else:
+                    print("中断...")
+                    if self.progressBar.isVisible():
+                        self.progressBar.setVisible(False)
+                    if not self.log.closed:
+                        self.log.close()
+                    if not self.dir_name is None:
+                        self.dir_name=None
+                    self.insert2textedit("操作停止(⊙︿⊙)")
+                    self.starttestbtntip("",True)
                     return
             print("准备间隔...")
             self.insert2textedit("准备等待%s秒"%testwait)
@@ -209,8 +304,12 @@ class controller_main(QMainWindow, Ui_MainWindow):
                 print('正在休息.%d'%w)
                 time.sleep(1)
         # 测试完成
+        if not self.log.closed:
+            self.log.close()
         self.resetPower()
         print("测试完成")
+        print(self.list_x,self.list_y)
+        self.starttestbtntip("测试完成\(^o^)/~",True)
         self.insert2textedit("测试完成\(^o^)/~")
 
     def resetPower(self):
@@ -290,7 +389,8 @@ class controller_main(QMainWindow, Ui_MainWindow):
 
             t_readA=threading.Thread(target=self.readA)
             self.isfreshA=True
-
+            t_readv.setDaemon(True)
+            t_readA.setDaemon(True)
             t_readv.start()
             t_readA.start()
         else:
