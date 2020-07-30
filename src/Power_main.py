@@ -266,7 +266,7 @@ class controller_main(QMainWindow, Ui_MainWindow):
             except:
                 self.insert2textedit("创建log文件错误，请重试 ~!")
                 return
-            time.sleep(2)
+            # time.sleep(2)
             # self.power.write("*RST")
             self.power.write("*CLS")
             self.power.write("VOLTage %s"%testv)
