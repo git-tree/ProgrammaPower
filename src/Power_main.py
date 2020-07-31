@@ -49,6 +49,7 @@ class controller_main(QMainWindow, Ui_MainWindow):
         # 生成数据
         self.log=None
         self.dir_name=None
+        self.startfresh=True
     @pyqtSlot()
     def on_btn_checkdevice_clicked(self):
         """
@@ -164,11 +165,13 @@ class controller_main(QMainWindow, Ui_MainWindow):
         reply = QtWidgets.QMessageBox.question(self, '提示', '确定要停止吗?',QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
         if reply == QtWidgets.QMessageBox.Yes:
             self.isTesting=False
+            self.startfresh=True
             self.btn_stop.setEnabled(False)
-            time.sleep(2)
+            # time.sleep(2)
             if not self.power is None:
-                self.power.write("*RST")
+                # self.power.write("*RST")
                 self.power.write("*CLS")
+                self.power.write("IOCLEAR")
                 self.power.write("OUTPut OFF")
                 self.isOUTPutOn=False
                 self.switchtip("电源已关闭",False)
@@ -250,6 +253,7 @@ class controller_main(QMainWindow, Ui_MainWindow):
         self.starttestbtntip("",True)
         self.progressBar.setValue(0)
         self.progressBar.setVisible(True)
+        self.startfresh=False
         self.dir_name=time.strftime("%Y-%m-%d %H-%M-%S", time.localtime())
         os.mkdir(os.getcwd()+'/'+self.dir_name)
         for i in range(len(data)):
@@ -257,6 +261,7 @@ class controller_main(QMainWindow, Ui_MainWindow):
                 print("开关已关闭,重新打开...")
                 self.power.write("*RST")
                 self.power.write("*CLS")
+                self.power.write("IOCLEAR")
                 self.power.write("OUTPut ON")
                 self.isOUTPutOn=True
             print(data[i])
@@ -277,6 +282,8 @@ class controller_main(QMainWindow, Ui_MainWindow):
             # time.sleep(2)
             # self.power.write("*RST")
             self.power.write("*CLS")
+            self.power.write("IOCLEAR")
+            print(testv)
             self.power.write("VOLTage %s"%testv)
 
             self.progressBar.setValue(0)
@@ -284,9 +291,14 @@ class controller_main(QMainWindow, Ui_MainWindow):
             for t in range(testt):
                 print(t)
                 if self.isTesting:
+                    self.power.write("IOCLEAR")
                     self.power.write("*CLS")
+                    vNum=float(self.power.query("MEAS:VOLT?"))
+                    self.power.write("IOCLEAR")
                     aNum=float(self.power.query("MEAS:CURR?"))
                     print(aNum)
+                    self.lcd_v.display(vNum)
+                    self.lcd_a.display(aNum)
                     self.log.write("%s,%s\n"%(t,aNum))
                     self.log.flush()
                     time.sleep(1)
@@ -314,6 +326,7 @@ class controller_main(QMainWindow, Ui_MainWindow):
             self.log.close()
         self.resetPower()
         print("测试完成")
+        self.startfresh=True
         self.starttestbtntip("测试完成\(^o^)/~",True)
         self.insert2textedit("测试完成\(^o^)/~")
 
@@ -321,6 +334,7 @@ class controller_main(QMainWindow, Ui_MainWindow):
         if not self.power is None:
             self.power.write("*RST")
             self.power.write("*CLS")
+            self.power.write("*IOCLEAR")
             self.power.write("OUTPut OFF")
             self.switchtip("电源已关闭",False)
             if self.isOUTPutOn:
@@ -345,6 +359,24 @@ class controller_main(QMainWindow, Ui_MainWindow):
             self.power.write("*CLS")
             aNum=float(self.power.query("MEAS:CURR?"))
             self.lcd_a.display(aNum)
+    def readV_A(self):
+        while True:
+            if self.startfresh:
+                print("持续读取...")
+                time.sleep(1)
+                self.power.write("IOCLEAR")
+                self.power.write("*CLS")
+                aNum=float(self.power.query("MEAS:CURR?"))
+                self.lcd_a.display(aNum)
+                self.power.write("IOCLEAR")
+                self.power.write("*CLS")
+                vNum=float(self.power.query("MEAS:VOLT?"))
+                self.lcd_v.display(vNum)
+            else:
+                print("正在测试，就先不读取了！")
+                time.sleep(1)
+
+
     def check_connect(self):
         """
         检查连接
@@ -389,15 +421,19 @@ class controller_main(QMainWindow, Ui_MainWindow):
             self.power.write("OUTPut OFF")
             self.power.timeout=3000
 
-            t_readv=threading.Thread(target=self.readV)
-            self.isfreshV=True
-
-            t_readA=threading.Thread(target=self.readA)
-            self.isfreshA=True
-            t_readv.setDaemon(True)
-            t_readA.setDaemon(True)
-            t_readv.start()
-            t_readA.start()
+            # t_readv=threading.Thread(target=self.readV)
+            # self.isfreshV=True
+            #
+            # t_readA=threading.Thread(target=self.readA)
+            # self.isfreshA=True
+            # t_readv.setDaemon(True)
+            # t_readA.setDaemon(True)
+            # t_readv.start()
+            # t_readA.start()
+            t_fresh=threading.Thread(target=self.readV_A)
+            t_fresh.setDaemon(True)
+            self.startfresh=True
+            t_fresh.start()
         else:
             self.tip_error("未发现设备，请确保打开电源后重试！")
         self.btn_checkdevice.setEnabled(True)
