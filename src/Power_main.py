@@ -150,6 +150,8 @@ class controller_main(QMainWindow, Ui_MainWindow):
         if self.isTesting:
             self.showmsg("请停止运行的测试任务后重试!")
             return
+        self.startfresh=False
+        time.sleep(2)
         t=threading.Thread(target=self.startTest,args=(self.testdata,))
         self.isTesting=True
         t.setDaemon(True)
@@ -253,13 +255,12 @@ class controller_main(QMainWindow, Ui_MainWindow):
         self.starttestbtntip("",True)
         self.progressBar.setValue(0)
         self.progressBar.setVisible(True)
-        self.startfresh=False
         self.dir_name=time.strftime("%Y-%m-%d %H-%M-%S", time.localtime())
         os.mkdir(os.getcwd()+'/'+self.dir_name)
         for i in range(len(data)):
             if not self.isOUTPutOn:
                 print("开关已关闭,重新打开...")
-                self.power.write("*RST")
+                # self.power.write("*RST")
                 self.power.write("*CLS")
                 self.power.write("IOCLEAR")
                 self.power.write("OUTPut ON")
@@ -332,7 +333,7 @@ class controller_main(QMainWindow, Ui_MainWindow):
 
     def resetPower(self):
         if not self.power is None:
-            self.power.write("*RST")
+            # self.power.write("*RST")
             self.power.write("*CLS")
             self.power.write("*IOCLEAR")
             self.power.write("OUTPut OFF")
@@ -366,11 +367,19 @@ class controller_main(QMainWindow, Ui_MainWindow):
                 time.sleep(1)
                 self.power.write("IOCLEAR")
                 self.power.write("*CLS")
-                aNum=float(self.power.query("MEAS:CURR?"))
+                try:
+                    aNum=float(self.power.query("MEAS:CURR?"))
+                except:
+                    aNum=0
+                    print("有错误")
                 self.lcd_a.display(aNum)
                 self.power.write("IOCLEAR")
                 self.power.write("*CLS")
-                vNum=float(self.power.query("MEAS:VOLT?"))
+                try:
+                    vNum=float(self.power.query("MEAS:VOLT?"))
+                except:
+                    vNum=0
+                    print("电压错误")
                 self.lcd_v.display(vNum)
             else:
                 print("正在测试，就先不读取了！")
