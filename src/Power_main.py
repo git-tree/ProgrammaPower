@@ -56,6 +56,11 @@ class controller_main(QMainWindow, Ui_MainWindow):
         """
         检查连接...
         """
+        try:
+            rm = pyvisa.ResourceManager("c:/windows/system32/visa32.dll")
+        except:
+            self.showmsg("未找到C:/windows/system32/visa32.dll文件，请配置电流测试环境！")
+            return
         if not self.power is None and self.powerok:
             self.showmsg("已连接.")
             return
@@ -126,7 +131,7 @@ class controller_main(QMainWindow, Ui_MainWindow):
             self.insert2textedit("暂无数据")
             return
         if self.isTesting:
-            self.showmsg("请等待测试完成!")
+            self.insert2textedit("请等待测试完成!")
             return
         self.showmsg_sure("你确定清空录入的数据吗?")
     @pyqtSlot()
@@ -161,6 +166,7 @@ class controller_main(QMainWindow, Ui_MainWindow):
         reply = QtWidgets.QMessageBox.question(self, '提示', '确定要停止吗?',QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
         if reply == QtWidgets.QMessageBox.Yes:
             self.isTesting=False
+            self.btn_stop.setEnabled(False)
             time.sleep(2)
             if not self.power is None:
                 self.power.write("*RST")
@@ -168,6 +174,7 @@ class controller_main(QMainWindow, Ui_MainWindow):
                 self.power.write("OUTPut OFF")
                 self.isOUTPutOn=False
                 self.switchtip("电源已关闭",False)
+            self.btn_stop.setEnabled(True)
         else:
             pass
     @pyqtSlot()
@@ -175,6 +182,9 @@ class controller_main(QMainWindow, Ui_MainWindow):
         """
         生成图表
         """
+        if self.isTesting:
+            self.insert2textedit("正在测试中，请等待完成后重试!")
+            return
         fnames = QFileDialog.getOpenFileNames(self, '选择多个文件','./',("logs (*.txt)"))
         print(fnames)
         if fnames[0]:

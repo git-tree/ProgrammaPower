@@ -232,7 +232,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "电流测试_1.0"))
         self.btn_checkdevice.setText(_translate("MainWindow", "检查连接"))
         self.label_5.setText(_translate("MainWindow", "当前电流:"))
         self.label_4.setText(_translate("MainWindow", "当前电压:"))
