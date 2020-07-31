@@ -47,8 +47,6 @@ class controller_main(QMainWindow, Ui_MainWindow):
         # 正在测试（已经开始测试）
         self.isTesting=False
         # 生成数据
-        self.list_x=[]
-        self.list_y=[]
         self.log=None
         self.dir_name=None
     @pyqtSlot()
@@ -289,8 +287,6 @@ class controller_main(QMainWindow, Ui_MainWindow):
                     self.power.write("*CLS")
                     aNum=float(self.power.query("MEAS:CURR?"))
                     print(aNum)
-                    # self.list_x.append(t)
-                    # self.list_y.append(aNum)
                     self.log.write("%s,%s\n"%(t,aNum))
                     self.log.flush()
                     time.sleep(1)
@@ -318,7 +314,6 @@ class controller_main(QMainWindow, Ui_MainWindow):
             self.log.close()
         self.resetPower()
         print("测试完成")
-        print(self.list_x,self.list_y)
         self.starttestbtntip("测试完成\(^o^)/~",True)
         self.insert2textedit("测试完成\(^o^)/~")
 
