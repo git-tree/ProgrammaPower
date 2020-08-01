@@ -161,25 +161,25 @@ class controller_main(QMainWindow, Ui_MainWindow):
         """
         停止测试
         """
+        print("stop被点击")
         if not self.isTesting:
             self.showmsg("当前无任务!")
             return
-        reply = QtWidgets.QMessageBox.question(self, '提示', '确定要停止吗?',QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
-        if reply == QtWidgets.QMessageBox.Yes:
+        reply = QtWidgets.QMessageBox.question(self, '提示', '确定要停止吗?',QMessageBox.Ok | QMessageBox.Close, QMessageBox.Close)
+        if reply == QMessageBox.Ok:
             self.isTesting=False
+            time.sleep(2)
             self.startfresh=True
-            self.btn_stop.setEnabled(False)
-            # time.sleep(2)
-            if not self.power is None:
-                # self.power.write("*RST")
-                self.power.write("*CLS")
-                self.power.write("IOCLEAR")
-                self.power.write("OUTPut OFF")
-                self.isOUTPutOn=False
-                self.switchtip("电源已关闭",False)
-            self.btn_stop.setEnabled(True)
+            # if not self.power is None:
+            #     # self.power.write("*RST")
+            #     self.power.write("*CLS")
+            #     self.power.write("IOCLEAR")
+            #     self.power.write("OUTPut OFF")
+            #     self.isOUTPutOn=False
+            #     self.switchtip("电源已关闭",False)
+            self.resetPower()
         else:
-            pass
+            print("取消")
     @pyqtSlot()
     def on_btn_report_clicked(self):
         """
@@ -253,8 +253,8 @@ class controller_main(QMainWindow, Ui_MainWindow):
             event.ignore()
     def startTest(self,data):
         self.starttestbtntip("",True)
-        self.progressBar.setValue(0)
-        self.progressBar.setVisible(True)
+        # self.progressBar.setValue(0)
+        # self.progressBar.setVisible(True)
         self.dir_name=time.strftime("%Y-%m-%d %H-%M-%S", time.localtime())
         os.mkdir(os.getcwd()+'/'+self.dir_name)
         for i in range(len(data)):
@@ -286,9 +286,15 @@ class controller_main(QMainWindow, Ui_MainWindow):
             self.power.write("IOCLEAR")
             print(testv)
             self.power.write("VOLTage %s"%testv)
-
-            self.progressBar.setValue(0)
-            self.progressBar.setMaximum(testt)
+            print("设置电压ok")
+            # try:
+            #     self.progressBar.setValue(0)
+            #     self.progressBar.setMaximum(testt)
+            #     print("进度条ok")
+            # except:
+            #     print("进度条不OK")
+            time.sleep(2)
+            print("休息ok")
             for t in range(testt):
                 print(t)
                 if self.isTesting:
@@ -301,19 +307,21 @@ class controller_main(QMainWindow, Ui_MainWindow):
                     self.lcd_v.display(vNum)
                     self.lcd_a.display(aNum)
                     self.log.write("%s,%s\n"%(t,aNum))
-                    self.log.flush()
                     time.sleep(1)
-                    self.progressBar.setValue(self.progressBar.value()+1)
+                    self.log.flush()
+                    # self.progressBar.setValue(self.progressBar.value()+1)
                 else:
                     print("中断...")
-                    if self.progressBar.isVisible():
-                        self.progressBar.setVisible(False)
+                    # if self.progressBar.isVisible():
+                    #     self.progressBar.setVisible(False)
                     if not self.log.closed:
                         self.log.close()
-                    if not self.dir_name is None:
-                        self.dir_name=None
+                        print("close-log!")
+                    # if not self.dir_name is None:
+                    #     self.dir_name=None
                     self.insert2textedit("操作停止(⊙︿⊙)")
                     self.starttestbtntip("",True)
+                    print("stop!")
                     return
             print("准备间隔...")
             self.insert2textedit("准备等待%s秒"%testwait)
@@ -330,7 +338,8 @@ class controller_main(QMainWindow, Ui_MainWindow):
         self.startfresh=True
         self.starttestbtntip("测试完成\(^o^)/~",True)
         self.insert2textedit("测试完成\(^o^)/~")
-
+    def  setprogressValue(self):
+        self.progressBar.setValue(self.progressBar.value()+1)
     def resetPower(self):
         if not self.power is None:
             # self.power.write("*RST")
@@ -383,7 +392,7 @@ class controller_main(QMainWindow, Ui_MainWindow):
                 self.lcd_v.display(vNum)
             else:
                 print("正在测试，就先不读取了！")
-                time.sleep(1)
+                time.sleep(2)
 
 
     def check_connect(self):
