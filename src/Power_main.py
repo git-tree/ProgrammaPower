@@ -56,7 +56,7 @@ class controller_main(QMainWindow, Ui_MainWindow):
         检查连接...
         """
         try:
-            rm = pyvisa.ResourceManager("c:/windows/system32/visa32.dll")
+            rm = pyvisa.ResourceManager("C:/windows/system32/visa32.dll")
         except:
             self.showmsg("未找到C:/windows/system32/visa32.dll文件，请配置电流测试环境！")
             return
