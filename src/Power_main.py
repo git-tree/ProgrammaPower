@@ -11,6 +11,8 @@ import pyvisa,time,threading
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import *
 import matplotlib.pyplot as plt
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtCore import *
 import os
 from numpy import *
 
@@ -50,6 +52,8 @@ class controller_main(QMainWindow, Ui_MainWindow):
         self.log=None
         self.dir_name=None
         self.startfresh=True
+        # 进度条相关
+        self.thread_progress=None
     @pyqtSlot()
     def on_btn_checkdevice_clicked(self):
         """
@@ -295,6 +299,7 @@ class controller_main(QMainWindow, Ui_MainWindow):
             #     print("进度条不OK")
             time.sleep(2)
             print("休息ok")
+            self.start_loading(testt)
             for t in range(testt):
                 print(t)
                 if self.isTesting:
@@ -321,9 +326,12 @@ class controller_main(QMainWindow, Ui_MainWindow):
                     #     self.dir_name=None
                     self.insert2textedit("操作停止(⊙︿⊙)")
                     self.starttestbtntip("",True)
+                    if not self.thread_progress is None:
+                        self.stop_loading()
                     print("stop!")
                     return
             print("准备间隔...")
+            self.stop_loading()
             self.insert2textedit("准备等待%s秒"%testwait)
             self.power.write("OUTPut OFF")
             self.isOUTPutOn=False
@@ -503,6 +511,50 @@ class controller_main(QMainWindow, Ui_MainWindow):
             # 红色
             self.tip_starttest.setStyleSheet("color: rgb(255, 0, 0);")
         self.tip_starttest.setText(str(msg))
+    def start_loading(self,max):
+        # 创建线程
+        self.thread_progress = Runthread()
+        self.thread_progress.max_value=max
+        # 连接信号
+        self.thread_progress._setmax.connect(self.setmax_progress)
+        self.thread_progress._signal.connect(self.call_backlog)  # 进程连接回传到GUI的事件
+        # 开始线程
+        # print(self.thread_progress.max_value)
+        self.thread_progress.start()
+    def stop_loading(self):
+        self.thread_progress.stop()
+
+    def call_backlog(self, msg):
+        if not self.progressBar.isVisible():
+            self.progressBar.setVisible(True)
+        self.progressBar.setValue(msg)
+    def setmax_progress(self,max):
+        self.progressBar.setValue(0)
+        self.progressBar.setMaximum(max)
+        print("设置最大成功%s"%max)
+# 继承QThread
+class Runthread(QtCore.QThread):
+    #  通过类成员对象定义信号对象
+    _signal = pyqtSignal(int)
+    _setmax = pyqtSignal(int)
+    max_value=0
+    def __init__(self):
+        super(Runthread, self).__init__()
+        self.isrun=True
+
+    def stop(self):
+        self.isrun=False
+
+    def run(self):
+        i=0
+        self._setmax.emit(int(self.max_value))
+        time.sleep(1)
+        print("###我发送了,max:%s"%self.max_value)
+        while self.isrun:
+            # print("loading...")
+            time.sleep(1)
+            self._signal.emit(i)  # 注意这里与_signal = pyqtSignal(int)中的类型相同
+            i+=1
 
 
         # ('GPIB1::0::INSTR', 'ASRL1::INSTR', 'ASRL3::INSTR', 'ASRL10::INSTR')
