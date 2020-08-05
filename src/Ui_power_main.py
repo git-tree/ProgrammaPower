@@ -179,7 +179,7 @@ class Ui_MainWindow(object):
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setObjectName("line")
-        self.gridLayout_4.addWidget(self.line, 3, 2, 1, 1)
+        self.gridLayout_4.addWidget(self.line, 3, 0, 1, 7)
         self.tip_starttest = QtWidgets.QLabel(self.centralWidget)
         font = QtGui.QFont()
         font.setFamily("微软雅黑")

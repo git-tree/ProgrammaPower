@@ -54,6 +54,14 @@ class controller_main(QMainWindow, Ui_MainWindow):
         self.startfresh=True
         # 进度条相关
         self.thread_progress=None
+    def paintEvent(self, event):# set background_img
+        try:
+            painter = QPainter(self)
+            painter.drawRect(self.rect())
+            pixmap = QPixmap("./bg.jpg")#换成自己的图片的相对路径
+            painter.drawPixmap(self.rect(), pixmap)
+        except:
+            pass
     @pyqtSlot()
     def on_btn_checkdevice_clicked(self):
         """
@@ -400,7 +408,7 @@ class controller_main(QMainWindow, Ui_MainWindow):
                 self.lcd_v.display(vNum)
             else:
                 print("正在测试，就先不读取了！")
-                time.sleep(2)
+                time.sleep(1)
 
 
     def check_connect(self):
